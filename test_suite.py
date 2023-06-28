@@ -5,10 +5,16 @@ from xml.dom.minidom import Element
 from xml.etree.ElementPath import find
 import pytest
 import time
+
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
+from webdriver_manager.core.utils import ChromeType
 
 
 # Factory Method Pattern: Create a factory function to instantiate the WebDriver instance
@@ -50,6 +56,7 @@ class HomePage:
             EC.presence_of_element_located((By.PARTIAL_LINK_TEXT, 'About'))
         )
         element.click()
+        time.sleep(2)
 
     def get_current_url(self):
         return self.driver.current_url
@@ -113,9 +120,32 @@ class CareersPage:
     def get_current_url(self):
         return self.driver.current_url
 
-# 1. Define a fixture to set up the WebDriver instance
+
 @pytest.fixture(scope='module')
 def driver():
+    chrome_service = Service(ChromeDriverManager(chrome_type=ChromeType.GOOGLE).install())
+
+    chrome_options = Options()
+    options = [
+    "--headless",
+    "--disable-gpu",
+    "--window-size=1920,1200",
+    "--ignore-certificate-errors",
+    "--disable-extensions",
+    "--no-sandbox",
+    "--disable-dev-shm-usage"
+]
+    for option in options:
+        chrome_options.add_argument(option)
+
+    driver = webdriver.Chrome(service=chrome_service, options=chrome_options)
+    yield driver
+    driver.quit()
+
+
+# 1. Define a fixture to set up the WebDriver instance
+# @pytest.fixture(scope='module')
+def gui_driver():
     # Create the WebDriver instance using the DriverManager
     driver_manager = DriverManager.get_instance('firefox')
 
@@ -149,13 +179,15 @@ def test_home_page_navigation(driver):
     current_url = homepage.get_current_url()
     expected_url = 'https://about.google/?fg=1&utm_source=google-US&utm_medium=referral&utm_campaign=hp-header'
     assert current_url == expected_url, f"Expected URL: {expected_url}, Actual URL: {current_url}"
-   
+
+  
 def test_about_page(driver):
     aboutpage = AboutPage(driver)
     aboutpage.open()
     assert aboutpage.get_title() == "Google - About Google, Our Culture & Company News"
     assert "Our mission is to" in aboutpage.get_header_text()
     assert aboutpage.get_learn_more_button().get_attribute("href") == "https://bard.google.com/"
+
 
 def test_about_page_navigation(driver):
     aboutpage = AboutPage(driver)
@@ -166,11 +198,13 @@ def test_about_page_navigation(driver):
     assert aboutpage.get_title() == "Build for everyone - Google Careers"
     assert current_url == expected_url, f"Expected URL: {expected_url}, Actual URL: {current_url}"
 
+
 def test_careers_page(driver):
     careerspage = CareersPage(driver)
     careerspage.open()
     assert careerspage.get_title() == "Build for everyone - Google Careers"
     assert "for everyone" in careerspage.get_header_text()
+
 
 def test_careers_page_navigation(driver):
     careerspage = CareersPage(driver)
