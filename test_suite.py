@@ -4,11 +4,11 @@ from re import A
 from xml.dom.minidom import Element
 from xml.etree.ElementPath import find
 import pytest
+import time
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-
 
 
 # Factory Method Pattern: Create a factory function to instantiate the WebDriver instance
@@ -71,13 +71,21 @@ class AboutPage:
     
     def get_learn_more_button(self):
         return self.driver.find_element(By.PARTIAL_LINK_TEXT, 'Learn more')
-    
         
     def click_careers_link(self):
-        element = WebDriverWait(self.driver, 10).until(
-            EC.presence_of_element_located((By.PARTIAL_LINK_TEXT, 'Careers'))
-        )
-        element.click()
+        # element = self.driver.find_element(By.PARTIAL_LINK_TEXT, 'Careers')
+        # element.click()
+        # time.sleep(2)
+        # windows = self.driver.window_handles
+        # self.driver.switch_to.window(windows[1])
+        element = self.driver.find_element(By.PARTIAL_LINK_TEXT, 'Careers')
+        href = element.get_attribute("href")
+        self.driver.execute_script("window.location.href = arguments[0];", href)
+        time.sleep(2)
+        # element = WebDriverWait(self.driver, 10).until(
+        #     EC.presence_of_element_located((By.PARTIAL_LINK_TEXT, 'careers.google.com'))
+        # )
+        # element.click()
           
     def get_current_url(self):
         return self.driver.current_url
@@ -98,7 +106,7 @@ class CareersPage:
 
     def click_job_listing(self):
         element = WebDriverWait(self.driver, 10).until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, '.job-listing'))
+            EC.presence_of_element_located((By.PARTIAL_LINK_TEXT, 'Jobs'))
         )
         element.click()
 
@@ -123,7 +131,7 @@ def driver():
 
 
 # 2. Write test functions using the driver fixture to perform actions and assertions on the website
-def test_homepage_title(driver):
+def test_home_page_title(driver):
     homepage = HomePage(driver)
     homepage.open()
     
@@ -134,7 +142,7 @@ def test_homepage_title(driver):
     assert driver.find_element(By.CLASS_NAME,'pHiOh'), "Advertising is not displyed on homepage footer"
 
 
-def test_homepage_navigation(driver):
+def test_home_page_navigation(driver):
     homepage = HomePage(driver)
     homepage.open()
     homepage.click_about_link()
@@ -144,59 +152,35 @@ def test_homepage_navigation(driver):
    
 def test_about_page(driver):
     aboutpage = AboutPage(driver)
-    aboutpage.open
+    aboutpage.open()
+    assert aboutpage.get_title() == "Google - About Google, Our Culture & Company News"
+    assert "Our mission is to" in aboutpage.get_header_text()
+    assert aboutpage.get_learn_more_button().get_attribute("href") == "https://bard.google.com/"
+
+def test_about_page_navigation(driver):
+    aboutpage = AboutPage(driver)
+    aboutpage.open() 
     aboutpage.click_careers_link()
     current_url = aboutpage.get_current_url()
-    expected_url = 'https://careers.google.com/?utm_source=about&utm_medium=referral&utm_campaign=footer-link'
-    
-    assert aboutpage.get_title()
-    assert aboutpage.get_header_text()
-    assert aboutpage.get_learn_more_button()
+    expected_url = 'https://careers.google.com/?utm_campaign=footer-link&utm_medium=referral&utm_source=about'
+    assert aboutpage.get_title() == "Build for everyone - Google Careers"
     assert current_url == expected_url, f"Expected URL: {expected_url}, Actual URL: {current_url}"
-    
+
+def test_careers_page(driver):
+    careerspage = CareersPage(driver)
+    careerspage.open()
+    assert careerspage.get_title() == "Build for everyone - Google Careers"
+    assert "for everyone" in careerspage.get_header_text()
+
+def test_careers_page_navigation(driver):
+    careerspage = CareersPage(driver)
+    careerspage.open()
+    careerspage.click_job_listing()
+    current_url = careerspage.get_current_url()
+    expected_url = 'https://www.google.com/about/careers/applications/jobs/results/?utm_campaign=footer-link&utm_medium=referral&utm_source=about'
+    assert careerspage.get_title() == "Search Jobs — Google Careers"
+    assert current_url == expected_url, f"Expected URL: {expected_url}, Actual URL: {current_url}"
    
-    
-#     assert 'Google - About Google, Our Culture & Company News' in aboutpage.get_title()
+
 if __name__ == '__main__':
     pytest.main(['-v'])
-
-
-
-
-
-
-# # 1. Define a fixture to set up the WebDriver instance
-# @pytest.fixture(scope='module')
-# def driver():
-#     # Initialize the WebDriver instance
-#     driver = webdriver.Firefox()  # Change to the appropriate browser driver
-    
-#     # Set up the driver options (e.g., maximize window, set implicit wait time)
-#     driver.maximize_window()
-#     driver.implicitly_wait(10)
-    
-#     # Pass the driver instance to the tests
-#     yield driver
-    
-#     # Teardown - quit the WebDriver instance after the tests complete
-#     #driver.quit()
-    
-    
-# # 2. Write test functions using the driver fixture to perform actions and assertions on the website
-# BASE_URL = 'https://www.openai.com'
-
-# def test_homepage_title(driver):
-#     driver.get(BASE_URL)
-#     assert 'OpenAI' in driver.title
-
-# def test_homepage_navigation(driver):
-#     driver.get(BASE_URL)
-    
-#     # Perform actions and assertions using WebDriver methods
-#     element = WebDriverWait(driver, 10).until(
-#         EC.presence_of_element_located((By.LINK_TEXT, 'Log in'))
-#     )
-#     element.click()
-    
-#     assert 'Log in' in driver.current_url
-
